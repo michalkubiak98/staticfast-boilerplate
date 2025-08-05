@@ -17,7 +17,7 @@ Perfect for developers who want to build client websites without the complexity.
 
 ## Live Demo
 
-🌐 **[View Live Demo](https://your-demo-url.cloudfront.net)** (Built with this boilerplate)
+🌐 **[View Live Demo](https://d2jiu7sqlhhawi.cloudfront.net)** (Built with this boilerplate)
 
 ## Quick Preview
 
