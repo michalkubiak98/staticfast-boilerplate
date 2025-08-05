@@ -1,0 +1,135 @@
+name: Deploy to AWS
+
+on:
+  push:
+    branches: [ main, master ]
+  workflow_dispatch:
+
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+    
+    steps:
+    - name: Checkout code
+      uses: actions/checkout@v4
+      
+    - name: Setup Node.js
+      uses: actions/setup-node@v4
+      with:
+        node-version: '18'
+        cache: 'npm'
+        
+    - name: Create .env file from secrets
+      run: |
+        cat > .env << EOF
+        # Business Details
+        BUSINESS_NAME="${{ secrets.BUSINESS_NAME }}"
+        BUSINESS_TAGLINE="${{ secrets.BUSINESS_TAGLINE }}"
+        BUSINESS_DESCRIPTION="${{ secrets.BUSINESS_DESCRIPTION }}"
+        
+        # Contact Information
+        PHONE="${{ secrets.PHONE }}"
+        EMAIL="${{ secrets.EMAIL }}"
+        ADDRESS="${{ secrets.ADDRESS }}"
+        
+        # Domain & Hosting
+        DOMAIN_NAME="${{ secrets.DOMAIN_NAME }}"
+        WWW_REDIRECT="${{ secrets.WWW_REDIRECT }}"
+        
+        # AWS Configuration
+        AWS_REGION="${{ secrets.AWS_REGION }}"
+        AWS_ACCOUNT_ID="${{ secrets.AWS_ACCOUNT_ID }}"
+        PROJECT_SLUG="${{ secrets.PROJECT_SLUG }}"
+        
+        # Branding
+        PRIMARY_COLOR="${{ secrets.PRIMARY_COLOR }}"
+        SECONDARY_COLOR="${{ secrets.SECONDARY_COLOR }}"
+        ACCENT_COLOR="${{ secrets.ACCENT_COLOR }}"
+        LOGO_PATH="${{ secrets.LOGO_PATH }}"
+        
+        # Hero Content
+        HERO_BADGE_TEXT="${{ secrets.HERO_BADGE_TEXT }}"
+        HERO_TITLE_LINE1="${{ secrets.HERO_TITLE_LINE1 }}"
+        HERO_TITLE_LINE2="${{ secrets.HERO_TITLE_LINE2 }}"
+        HERO_SUBTITLE="${{ secrets.HERO_SUBTITLE }}"
+        
+        # Services
+        SERVICE_1_NAME="${{ secrets.SERVICE_1_NAME }}"
+        SERVICE_1_PRICE="${{ secrets.SERVICE_1_PRICE }}"
+        SERVICE_1_DURATION="${{ secrets.SERVICE_1_DURATION }}"
+        SERVICE_1_DESCRIPTION="${{ secrets.SERVICE_1_DESCRIPTION }}"
+        
+        SERVICE_2_NAME="${{ secrets.SERVICE_2_NAME }}"
+        SERVICE_2_PRICE="${{ secrets.SERVICE_2_PRICE }}"
+        SERVICE_2_DURATION="${{ secrets.SERVICE_2_DURATION }}"
+        SERVICE_2_DESCRIPTION="${{ secrets.SERVICE_2_DESCRIPTION }}"
+        
+        SERVICE_3_NAME="${{ secrets.SERVICE_3_NAME }}"
+        SERVICE_3_PRICE="${{ secrets.SERVICE_3_PRICE }}"
+        SERVICE_3_DURATION="${{ secrets.SERVICE_3_DURATION }}"
+        SERVICE_3_DESCRIPTION="${{ secrets.SERVICE_3_DESCRIPTION }}"
+        
+        # SEO
+        META_TITLE="${{ secrets.META_TITLE }}"
+        META_DESCRIPTION="${{ secrets.META_DESCRIPTION }}"
+        META_KEYWORDS="${{ secrets.META_KEYWORDS }}"
+        EOF
+        
+    - name: Install dependencies
+      run: npm ci
+      
+    - name: Build Next.js app
+      run: npm run build
+      
+    - name: Configure AWS credentials
+      uses: aws-actions/configure-aws-credentials@v4
+      with:
+        aws-access-key-id: ${{ secrets.AWS_ACCESS_KEY_ID }}
+        aws-secret-access-key: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
+        aws-region: ${{ secrets.AWS_REGION }}
+        
+    - name: Install CDK dependencies
+      run: |
+        cd cdk
+        npm ci
+        
+    - name: Bootstrap CDK (if needed)
+      run: |
+        cd cdk
+        npx cdk bootstrap --require-approval never
+        
+    - name: Deploy infrastructure
+      run: |
+        cd cdk
+        npx cdk deploy --require-approval never
+        
+    - name: Get CloudFront Distribution ID
+      id: get-distribution-id
+      run: |
+        cd cdk
+        DISTRIBUTION_ID=$(npx cdk --app "npx ts-node --prefer-ts-exts bin/app.ts" --output cdk.out --require-approval never list | head -n 1 | xargs -I {} npx cdk --app "npx ts-node --prefer-ts-exts bin/app.ts" --output cdk.out outputs {} | grep 'DistributionId' | awk '{print $3}')
+        echo "DISTRIBUTION_ID=$DISTRIBUTION_ID" >> $GITHUB_OUTPUT
+        
+    - name: Get S3 Bucket Name
+      id: get-bucket-name
+      run: |
+        cd cdk
+        BUCKET_NAME=$(npx cdk --app "npx ts-node --prefer-ts-exts bin/app.ts" --output cdk.out --require-approval never list | head -n 1 | xargs -I {} npx cdk --app "npx ts-node --prefer-ts-exts bin/app.ts" --output cdk.out outputs {} | grep 'BucketName' | awk '{print $3}')
+        echo "BUCKET_NAME=$BUCKET_NAME" >> $GITHUB_OUTPUT
+        
+    - name: Deploy to S3
+      run: |
+        aws s3 sync out/ s3://${{ steps.get-bucket-name.outputs.BUCKET_NAME }} --delete
+        
+    - name: Invalidate CloudFront
+      run: |
+        aws cloudfront create-invalidation --distribution-id ${{ steps.get-distribution-id.outputs.DISTRIBUTION_ID }} --paths "/*"
+        
+    - name: Deployment Complete
+      run: |
+        echo "🚀 Deployment completed successfully!"
+        if [ -n "${{ secrets.DOMAIN_NAME }}" ]; then
+          echo "🌐 Website URL: https://${{ secrets.DOMAIN_NAME }}"
+        else
+          echo "🌐 CloudFront URL: Available in AWS Console"
+        fi
