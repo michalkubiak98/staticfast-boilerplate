@@ -477,6 +477,110 @@ Check **Actions** tab in your GitHub repository to watch the deployment.
 
 ---
 
+## 🌐 Custom Domain Setup (Optional)
+
+Your website works perfectly with the CloudFront URL, but if you want a custom domain like `yourbusiness.com`, follow these steps.
+
+### 💰 Cost Summary
+
+**CloudFront URL (free):**
+- `https://d1234567890abc.cloudfront.net` - **$0/month**
+
+**Custom Domain:**
+- Route53 DNS: **$0.50/month**
+- Domain registration: **$12-25/year**
+- Everything else stays free with AWS Free Tier
+
+### Step 1: Ask Claude Code to Set Up Custom Domain
+
+```
+I want to add a custom domain to my StaticFast website. I have these details:
+
+Domain: [yourbusiness.com]
+Domain registrar: [GoDaddy/Namecheap/etc]
+I want: [both www and non-www to work]
+
+Please:
+1. Update my CDK stack to request an SSL certificate
+2. Configure CloudFront for my custom domain
+3. Give me exact DNS records to add at my registrar
+4. Walk me through the registrar setup step-by-step
+```
+
+### Step 2: Claude Code Will Do This For You
+
+Claude Code will automatically:
+1. **Request SSL certificate** from AWS Certificate Manager
+2. **Update CloudFront** to accept your domain
+3. **Create Route53 hosted zone** (if using Route53 DNS)
+4. **Deploy infrastructure** changes
+5. **Give you DNS records** to configure
+
+### Step 3: Configure DNS (Choose One Option)
+
+Claude Code will give you **two options:**
+
+#### Option A: Use Route53 DNS (Recommended)
+**What you'll do:**
+1. Copy 4 nameservers from Claude Code
+2. Update nameservers at your domain registrar
+3. Wait 10-30 minutes for DNS propagation
+
+#### Option B: Keep DNS at Your Registrar
+**What you'll do:**
+1. Add A/CNAME records from Claude Code
+2. Add certificate validation CNAME
+3. Wait 10-30 minutes for validation
+
+### Step 4: Test Your Domain
+
+Claude Code will tell you when it's ready:
+- `https://yourbusiness.com` ✅
+- `https://www.yourbusiness.com` ✅
+- Automatic redirect from HTTP to HTTPS ✅
+
+### Example Prompts for Common Registrars
+
+**GoDaddy:**
+```
+My domain is at GoDaddy. Please give me exact steps to:
+1. Update nameservers to Route53, or 
+2. Add DNS records in GoDaddy
+I prefer the easier option.
+```
+
+**Namecheap:**
+```
+My domain is at Namecheap. I want to use Route53 for DNS.
+Please give me the nameservers and exact steps to change them.
+```
+
+**Cloudflare:**
+```
+I use Cloudflare for DNS. Please give me the exact DNS records 
+to point my domain to CloudFront with SSL.
+```
+
+### Troubleshooting Domains
+
+**SSL Certificate Issues:**
+```
+My domain shows "not secure" or certificate errors.
+Domain: [yourbusiness.com]
+Error message: [paste exact error]
+Please check certificate validation and help fix it.
+```
+
+**DNS Not Propagating:**
+```
+My domain isn't pointing to my website yet. It's been X hours.
+Domain: [yourbusiness.com]
+Registrar: [GoDaddy/etc]
+Please check DNS propagation and help troubleshoot.
+```
+
+---
+
 ## 🆘 Troubleshooting
 
 ### Starting Claude Code Troubleshooting

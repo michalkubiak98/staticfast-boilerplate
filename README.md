@@ -13,11 +13,11 @@ Perfect for developers who want to build client websites without the complexity.
 ✅ **Custom domains** with SSL certificates  
 ✅ **Claude Code integration** - AI handles the technical work  
 
-**Total monthly cost: ~$2-3** • **Setup time: ~30 minutes**
+**Total monthly cost: $0 (free tier) to $3** • **Setup time: ~30 minutes**
 
 ## Live Demo
 
-🌐 **[View Live Demo](https://d2jiu7sqlhhawi.cloudfront.net)** (Built with this boilerplate)
+🌐 **[View Live Demo](https://staticfast.app)** (Built with this boilerplate)
 
 ## Quick Preview
 
