@@ -173,7 +173,7 @@ Here's what I want you to help me do:
 
 7. Set up a GitHub repository with automatic deployments
 
-8. Add all environment variables as GitHub Secrets
+8. Add only AWS credentials as GitHub Secrets (Claude Code handles the rest)
 
 IMPORTANT: 
 - Ask me to approve each command before you run it
@@ -210,7 +210,7 @@ Claude Code will:
 5. **Start the local development server** so you can see your website
 6. **Ask for your approval** before each major step
 7. **Deploy to AWS** only after you're happy with the local version
-8. **Set up GitHub** for automatic deployments
+8. **Set up GitHub** with automatic deployments (only needs AWS credentials as secrets)
 
 ### IMPORTANT: You Must Approve Commands
 
@@ -421,6 +421,50 @@ cd my-website  # your project directory
 - Keep the domain for future use
 - Transfer it elsewhere
 - Let it expire (you'll get renewal notices)
+
+---
+
+## 🔑 GitHub Secrets Setup (For Auto-Deployment)
+
+After Claude Code sets up your website and GitHub repository, you need to add **only 2 secrets** for automatic deployments:
+
+### Step 1: Get Your AWS Access Keys
+1. Go to [AWS IAM Console](https://console.aws.amazon.com/iam/)
+2. Click "Users" → Your username  
+3. Click "Security credentials" tab
+4. Click "Create access key"
+5. Choose "Command Line Interface (CLI)" → Next
+6. Add description "StaticFast Deployment" → Create access key
+7. **Copy both keys immediately** (you won't see the secret key again!)
+
+### Step 2: Add Secrets to GitHub
+1. Go to your GitHub repository
+2. Click **Settings** (top right)
+3. Click **Secrets and variables** → **Actions** (left sidebar)  
+4. Click **"New repository secret"**
+
+Add these **2 secrets only:**
+
+```
+Name: AWS_ACCESS_KEY_ID
+Value: [your-aws-access-key-id]
+
+Name: AWS_SECRET_ACCESS_KEY  
+Value: [your-aws-secret-access-key]
+```
+
+**That's it!** No business info, no project names - Claude Code handles everything else through your `.env` file.
+
+### Step 3: Test Auto-Deployment
+After adding secrets, make any small change and push:
+
+```bash
+git add .
+git commit -m "Test deployment"  
+git push
+```
+
+Check **Actions** tab in your GitHub repository to watch the deployment.
 
 ---
 
