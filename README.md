@@ -234,4 +234,6 @@ MIT License - Use freely for client projects and commercial work.
 
 **Built with ❤️ for developers who want to focus on business results, not infrastructure complexity.**
 
+<!-- Last tested: August 5, 2025 -->
+
 [Get Started Now →](./FIRST-STEPS.md)
