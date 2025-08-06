@@ -437,7 +437,16 @@ After Claude Code sets up your website and GitHub repository, you need to add **
 6. Add description "StaticFast Deployment" → Create access key
 7. **Copy both keys immediately** (you won't see the secret key again!)
 
-### Step 2: Add Secrets to GitHub
+### Step 2: Enable GitHub Actions
+First, rename the workflow file to activate it:
+```bash
+mv .github/workflows/deploy.yml.example .github/workflows/deploy.yml
+git add .
+git commit -m "Enable GitHub Actions deployment"
+git push
+```
+
+### Step 3: Add Secrets to GitHub
 1. Go to your GitHub repository
 2. Click **Settings** (top right)
 3. Click **Secrets and variables** → **Actions** (left sidebar)  
@@ -455,7 +464,7 @@ Value: [your-aws-secret-access-key]
 
 **That's it!** No business info, no project names - Claude Code handles everything else through your `.env` file.
 
-### Step 3: Test Auto-Deployment
+### Step 4: Test Auto-Deployment
 After adding secrets, make any small change and push:
 
 ```bash

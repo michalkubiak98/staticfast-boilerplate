@@ -1,0 +1,100 @@
+name: Deploy to AWS
+
+on:
+  push:
+    branches: [ main, master ]
+  workflow_dispatch:
+
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+    
+    steps:
+    - name: Checkout code
+      uses: actions/checkout@v4
+      
+    - name: Setup Node.js
+      uses: actions/setup-node@v4
+      with:
+        node-version: '18'
+        cache: 'npm'
+        
+    - name: Create .env file from example
+      run: |
+        if [ -f .env.example ]; then
+          cp .env.example .env
+          echo ".env file created from .env.example"
+        else
+          echo "Error: .env.example not found"
+          exit 1
+        fi
+        
+    - name: Install dependencies
+      run: npm ci
+      
+    - name: Build Next.js app
+      run: npm run build
+      
+    - name: Configure AWS credentials
+      uses: aws-actions/configure-aws-credentials@v4
+      with:
+        aws-access-key-id: ${{ secrets.AWS_ACCESS_KEY_ID }}
+        aws-secret-access-key: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
+        aws-region: ${{ secrets.AWS_REGION || 'us-east-1' }}
+        
+    - name: Install CDK dependencies
+      run: |
+        cd cdk
+        npm ci
+        
+    - name: Bootstrap CDK (if needed)
+      run: |
+        cd cdk
+        npx cdk bootstrap --require-approval never || true
+        
+    - name: Deploy infrastructure
+      run: |
+        cd cdk
+        npx cdk deploy --require-approval never
+        
+    - name: Deploy to S3 and Invalidate CloudFront
+      run: |
+        # Get project slug and account ID from .env
+        PROJECT_SLUG=$(grep '^PROJECT_SLUG=' .env | cut -d'=' -f2 | tr -d '"')
+        AWS_ACCOUNT_ID=$(grep '^AWS_ACCOUNT_ID=' .env | cut -d'=' -f2 | tr -d '"')
+        
+        # Use repository name as project slug if not set
+        if [ -z "$PROJECT_SLUG" ] || [ "$PROJECT_SLUG" = "your-project-name" ]; then
+          PROJECT_SLUG="${{ github.event.repository.name }}"
+          echo "Using repository name as PROJECT_SLUG: $PROJECT_SLUG"
+        fi
+        
+        # Use AWS account ID from caller identity if not set
+        if [ -z "$AWS_ACCOUNT_ID" ] || [ "$AWS_ACCOUNT_ID" = "123456789012" ]; then
+          AWS_ACCOUNT_ID=$(aws sts get-caller-identity --query Account --output text)
+          echo "Using AWS account ID: $AWS_ACCOUNT_ID"
+        fi
+        
+        # Deploy to S3
+        BUCKET_NAME="${PROJECT_SLUG}-website-${AWS_ACCOUNT_ID}"
+        echo "Deploying to bucket: $BUCKET_NAME"
+        aws s3 sync out/ s3://$BUCKET_NAME --delete
+        
+        # Find and invalidate CloudFront distribution
+        DISTRIBUTION_ID=$(aws cloudfront list-distributions --query "DistributionList.Items[?Origins.Items[0].DomainName==\`${BUCKET_NAME}.s3.amazonaws.com\`].Id | [0]" --output text)
+        if [ "$DISTRIBUTION_ID" != "None" ] && [ "$DISTRIBUTION_ID" != "" ]; then
+          echo "Invalidating CloudFront distribution: $DISTRIBUTION_ID"
+          aws cloudfront create-invalidation --distribution-id $DISTRIBUTION_ID --paths "/*"
+        else
+          echo "CloudFront distribution not found"
+        fi
+        
+    - name: Deployment Complete
+      run: |
+        echo "🚀 Deployment completed successfully!"
+        DOMAIN_NAME=$(grep '^DOMAIN_NAME=' .env | cut -d'=' -f2 | tr -d '"')
+        if [ -n "$DOMAIN_NAME" ] && [ "$DOMAIN_NAME" != "yourbusiness.com" ]; then
+          echo "🌐 Website URL: https://$DOMAIN_NAME"
+        else
+          echo "🌐 CloudFront URL: Available in AWS Console"
+        fi
